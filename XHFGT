@@ -1,0 +1,28 @@
+task.wait(0.5)
+local Players = game:GetService("Players")
+local workspace = game:GetService("Workspace")
+local Player = Players.LocalPlayer
+local msg = Instance.new("Message", workspace)
+msg.Text = "达脚本正在检测你是否被加入白名单"
+task.wait(4)
+msg.Text = "如果没有名单将会进不去"
+task.wait(4)
+msg:Destroy()
+local WhiteList = {
+    "ddxdfg123",
+    "Fetter_hh",
+    "sjqgduf6",
+}
+if table.find(WhiteList, Player.Name) then
+    local msg = Instance.new("Message", workspace)
+    msg.Text = "已检测到你("..Player.Name..")被加入白名单"
+    task.wait(3)
+    msg:Destroy()
+    local msg = Instance.new("Message", workspace)
+    msg.Text = "达脚本正在加载(请稍等金主)"
+    task.wait(4)
+    msg:Destroy()
+else
+    setclipboard("作者QQ号:3491629303")
+    Player:Kick("你没有被列入达脚本白名单，请去找作者3491629303")
+end
