@@ -42,7 +42,6 @@ if _G.FastAttack then
             Enemies = SafeWaitForChild(workspace, "Enemies")
             
             if Remotes and Modules and Net and RegisterAttack and RegisterHit and Enemies then
-                warn("所有核心组件已获取")
                 break
             end
             task.wait(0.5)
@@ -82,7 +81,14 @@ if _G.FastAttack then
         }
 
         local function IsAlive(character)
-            return character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0
+            if not character then
+                return false
+            end
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if not humanoid then
+                return false
+            end
+            return humanoid.Health and humanoid.Health > 0
         end
 
         local function ProcessEnemies(OthersEnemies, Folder)
@@ -147,7 +153,7 @@ if _G.FastAttack then
 
         function FastAttack:BladeHits()
             if not self.IsRunning then return end
-            local Equipped = IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
+            local Equipped = Player.Character and IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
             if Equipped and Equipped.ToolTip ~= "Gun" then
                 self:AttackNearest()
             else
@@ -281,7 +287,7 @@ task.spawn(function()
     while true do
         task.wait(1)
         if _ENV.rz_FastAttack then
-            print("✅ 快速攻击功能已正常启动，拖动悬浮窗即可移动")
+            -- 此处原本的“快速攻击功能已正常启动...”提示已移除
         else
             warn("⚠️ 快速攻击组件未完全加载，持续尝试恢复...")
             while not _ENV.rz_FastAttack do
@@ -291,10 +297,17 @@ task.spawn(function()
                     Module.FastAttack = Module.FastAttack or (function()
                         local FastAttack = {Distance=500, attackMobs=true, attackPlayers=true, Equipped=nil, IsRunning=true}
                         local function IsAlive(character)
-                            return character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0
+                            if not character then
+                                return false
+                            end
+                            local humanoid = character:FindFirstChildOfClass("Humanoid")
+                            if not humanoid then
+                                return false
+                            end
+                            return humanoid.Health and humanoid.Health > 0
                         end
                         function FastAttack:BladeHits()
-                            local Equipped = IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
+                            local Equipped = Player.Character and IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
                             if Equipped and Equipped.ToolTip ~= "Gun" then
                                 self:AttackNearest()
                             end
@@ -350,7 +363,7 @@ task.spawn(function()
                         task.spawn(function()
                             while true do
                                 task.wait(Settings.ClickDelay)
-                                if FastAttack.IsRunning then
+                                if Settings.AutoClick and FastAttack.IsRunning then
                                     CheckAndGetCoreComponents()
                                     FastAttack:BladeHits()
                                 else
@@ -359,7 +372,6 @@ task.spawn(function()
                             end
                         end)
                         _ENV.rz_FastAttack = FastAttack
-                        print("✅ 快速攻击功能已恢复启动")
                         return FastAttack
                     end)()
                 end
