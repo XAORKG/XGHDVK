@@ -31,21 +31,29 @@ if _G.FastAttack then
         return last
     end
 
-    local Remotes = SafeWaitForChild(ReplicatedStorage, "Remotes")
-    if not Remotes then warn("核心组件Remotes缺失，快速攻击无法运行") end
+    local Remotes, Modules, Net, RegisterAttack, RegisterHit, Enemies = nil, nil, nil, nil, nil, nil
+    local function CheckAndGetCoreComponents()
+        while true do
+            Remotes = SafeWaitForChild(ReplicatedStorage, "Remotes")
+            Modules = SafeWaitForChild(ReplicatedStorage, "Modules")
+            Net = Modules and SafeWaitForChild(Modules, "Net") or nil
+            RegisterAttack = Net and SafeWaitForChild(Net, "RE/RegisterAttack") or nil
+            RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
+            Enemies = SafeWaitForChild(workspace, "Enemies")
+            
+            if Remotes and Modules and Net and RegisterAttack and RegisterHit and Enemies then
+                warn("所有核心组件已获取")
+                break
+            end
+            task.wait(0.5)
+        end
+    end
+    CheckAndGetCoreComponents()
 
     local Validator = Remotes and SafeWaitForChild(Remotes, "Validator") or nil
     local CommF = Remotes and SafeWaitForChild(Remotes, "CommF_") or nil
     local CommE = Remotes and SafeWaitForChild(Remotes, "CommE") or nil
-
     local WorldOrigin = SafeWaitForChild(workspace, "_WorldOrigin")
-    local Enemies = SafeWaitForChild(workspace, "Enemies") -- 保留NPC文件夹（攻击怪物用）
-    -- 移除原Characters（存NPC），不用它找玩家
-
-    local Modules = SafeWaitForChild(ReplicatedStorage, "Modules")
-    local Net = Modules and SafeWaitForChild(Modules, "Net") or nil
-    local RegisterAttack = Net and SafeWaitForChild(Net, "RE/RegisterAttack") or nil
-    local RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
 
     local criticalComponents = {Remotes, Net, RegisterAttack, RegisterHit, Enemies}
     local hasMissing = table.find(criticalComponents, nil) ~= nil
@@ -53,7 +61,6 @@ if _G.FastAttack then
         warn("部分核心组件缺失，快速攻击功能将在组件加载后自动恢复")
     end
 
-    -- 修复：攻击频率改为0.01（避免服务器拦截）
     local Settings = {
         AutoClick = true,
         ClickDelay = 0.01
@@ -68,57 +75,44 @@ if _G.FastAttack then
 
         local FastAttack = {
             Distance = 500,
-            attackMobs = true,   -- 攻击NPC开关
-            attackPlayers = true,-- 攻击玩家开关
+            attackMobs = true,
+            attackPlayers = true,
             Equipped = nil,
             IsRunning = true
         }
 
-        -- 工具函数：判断角色是否存活
         local function IsAlive(character)
             return character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0
         end
 
-        -- 原逻辑：只处理文件夹里的NPC（新增Head/Torso/HRP多重判定）
         local function ProcessEnemies(OthersEnemies, Folder)
             if not Folder or not FastAttack.attackMobs then return nil end
             local BasePart = nil
             for _, Enemy in Folder:GetChildren() do
-                -- 跳过死亡角色或自身
                 if not IsAlive(Enemy) or Enemy == Player.Character then continue end
-                
-                -- 多重部件判定：优先用Head，其次Torso/UpperTorso，最后HRP（哪个存在用哪个）
                 local TargetPart = Enemy:FindFirstChild("Head")
-                    or Enemy:FindFirstChild("Torso") -- 兼容默认躯干
-                    or Enemy:FindFirstChild("UpperTorso") -- 兼容细分躯干（如R15模型）
-                    or Enemy:FindFirstChild("HumanoidRootPart") -- 最后用核心判定部件
-
-                -- 满足距离条件则加入攻击列表
+                    or Enemy:FindFirstChild("Torso")
+                    or Enemy:FindFirstChild("UpperTorso")
+                    or Enemy:FindFirstChild("HumanoidRootPart")
                 if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
                     table.insert(OthersEnemies, { Enemy, TargetPart })
-                    BasePart = TargetPart -- 记录当前可用的判定部件
+                    BasePart = TargetPart
                 end
             end
             return BasePart
         end
 
-        -- 新增！精准找真玩家（从Players服务获取，不找文件夹）（新增多部件判定）
         local function ProcessRealPlayers(OthersEnemies)
             if not FastAttack.attackPlayers then return nil end
             local BasePart = nil
             for _, OtherPlayer in Players:GetPlayers() do
-                -- 跳过自身或死亡玩家
                 if OtherPlayer == Player then continue end
                 local OtherChar = OtherPlayer.Character
                 if not IsAlive(OtherChar) then continue end
-
-                -- 同上：多重部件判定（Head→Torso→UpperTorso→HRP）
                 local TargetPart = OtherChar:FindFirstChild("Head")
                     or OtherChar:FindFirstChild("Torso")
                     or OtherChar:FindFirstChild("UpperTorso")
                     or OtherChar:FindFirstChild("HumanoidRootPart")
-
-                -- 满足距离条件则加入攻击列表
                 if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
                     table.insert(OthersEnemies, { OtherChar, TargetPart })
                     BasePart = TargetPart
@@ -128,19 +122,22 @@ if _G.FastAttack then
         end
 
         function FastAttack:Attack(BasePart, OthersEnemies)
-            if not (BasePart and OthersEnemies and #OthersEnemies > 0 and RegisterAttack and RegisterHit) then
+            local temp_RegisterAttack = Net and SafeWaitForChild(Net, "RE/RegisterAttack") or nil
+            local temp_RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
+            if not (BasePart and OthersEnemies and #OthersEnemies > 0 and temp_RegisterAttack and temp_RegisterHit) then
+                CheckAndGetCoreComponents()
                 return
             end
-            RegisterAttack:FireServer(Settings.ClickDelay or 0)
-            RegisterHit:FireServer(BasePart, OthersEnemies)
+            temp_RegisterAttack:FireServer(Settings.ClickDelay or 0)
+            temp_RegisterHit:FireServer(BasePart, OthersEnemies)
         end
 
-        -- 修改！AttackNearest同时找NPC和真玩家
         function FastAttack:AttackNearest()
             if not self.IsRunning then return end
             local OthersEnemies = {}
-            local Part1 = ProcessEnemies(OthersEnemies, Enemies) -- 找NPC
-            local Part2 = ProcessRealPlayers(OthersEnemies)     -- 找真玩家
+            local currentEnemies = SafeWaitForChild(workspace, "Enemies")
+            local Part1 = ProcessEnemies(OthersEnemies, currentEnemies)
+            local Part2 = ProcessRealPlayers(OthersEnemies)
             if #OthersEnemies > 0 then
                 self:Attack(Part1 or Part2, OthersEnemies)
             else
@@ -158,10 +155,11 @@ if _G.FastAttack then
             end
         end
 
-        -- 自动攻击循环
         task.spawn(function()
-            while task.wait(Settings.ClickDelay) do
-                if Settings.AutoClick and FastAttack.IsRunning and not hasMissing then
+            while true do
+                task.wait(Settings.ClickDelay)
+                if Settings.AutoClick and FastAttack.IsRunning then
+                    CheckAndGetCoreComponents()
                     FastAttack:BladeHits()
                 else
                     task.wait(0.1)
@@ -174,7 +172,6 @@ if _G.FastAttack then
     end)()
 end
 
--- 以下是原UI代码，完全保留不变
 local FastAttackUI = Instance.new("ScreenGui")
 FastAttackUI.Name = "FastAttackUI"
 FastAttackUI.Parent = PlayerGui
@@ -280,83 +277,92 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 组件加载检测循环
 task.spawn(function()
-    task.wait(1)
-    if _ENV.rz_FastAttack then
-        print("✅ 快速攻击功能已正常启动，拖动悬浮窗即可移动")
-    else
-        warn("⚠️ 快速攻击组件未完全加载，持续尝试恢复...")
-        while not _ENV.rz_FastAttack do
-            task.wait(3)
-            if _G.FastAttack and not hasMissing then
-                Module.FastAttack = Module.FastAttack or (function()
-                    local FastAttack = {Distance=500, attackMobs=true, attackPlayers=true, Equipped=nil, IsRunning=true}
-                    local function IsAlive(character)
-                        return character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0
-                    end
-                    function FastAttack:BladeHits()
-                        local Equipped = IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
-                        if Equipped and Equipped.ToolTip ~= "Gun" then
-                            self:AttackNearest()
+    while true do
+        task.wait(1)
+        if _ENV.rz_FastAttack then
+            print("✅ 快速攻击功能已正常启动，拖动悬浮窗即可移动")
+        else
+            warn("⚠️ 快速攻击组件未完全加载，持续尝试恢复...")
+            while not _ENV.rz_FastAttack do
+                task.wait(0.5)
+                if _G.FastAttack then
+                    CheckAndGetCoreComponents()
+                    Module.FastAttack = Module.FastAttack or (function()
+                        local FastAttack = {Distance=500, attackMobs=true, attackPlayers=true, Equipped=nil, IsRunning=true}
+                        local function IsAlive(character)
+                            return character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0
                         end
-                    end
-                    function FastAttack:AttackNearest()
-                        if not self.IsRunning then return end
-                        local OthersEnemies = {}
-                        -- 恢复逻辑中同步多部件判定
-                        local function ProcessEnemies(OthersEnemies, Folder)
-                            if not Folder or not FastAttack.attackMobs then return nil end
-                            local BasePart = nil
-                            for _, Enemy in Folder:GetChildren() do
-                                if not IsAlive(Enemy) or Enemy == Player.Character then continue end
-                                local TargetPart = Enemy:FindFirstChild("Head") or Enemy:FindFirstChild("Torso") or Enemy:FindFirstChild("UpperTorso") or Enemy:FindFirstChild("HumanoidRootPart")
-                                if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
-                                    table.insert(OthersEnemies, { Enemy, TargetPart })
-                                    BasePart = TargetPart
+                        function FastAttack:BladeHits()
+                            local Equipped = IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
+                            if Equipped and Equipped.ToolTip ~= "Gun" then
+                                self:AttackNearest()
+                            end
+                        end
+                        function FastAttack:AttackNearest()
+                            if not self.IsRunning then return end
+                            local OthersEnemies = {}
+                            local currentEnemies = SafeWaitForChild(workspace, "Enemies")
+                            local function ProcessEnemies(OthersEnemies, Folder)
+                                if not Folder or not FastAttack.attackMobs then return nil end
+                                local BasePart = nil
+                                for _, Enemy in Folder:GetChildren() do
+                                    if not IsAlive(Enemy) or Enemy == Player.Character then continue end
+                                    local TargetPart = Enemy:FindFirstChild("Head") or Enemy:FindFirstChild("Torso") or Enemy:FindFirstChild("UpperTorso") or Enemy:FindFirstChild("HumanoidRootPart")
+                                    if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
+                                        table.insert(OthersEnemies, { Enemy, TargetPart })
+                                        BasePart = TargetPart
+                                    end
+                                end
+                                return BasePart
+                            end
+                            local function ProcessRealPlayers(OthersEnemies)
+                                if not FastAttack.attackPlayers then return nil end
+                                local BasePart = nil
+                                for _, OtherPlayer in Players:GetPlayers() do
+                                    if OtherPlayer == Player then continue end
+                                    local OtherChar = OtherPlayer.Character
+                                    if not IsAlive(OtherChar) then continue end
+                                    local TargetPart = OtherChar:FindFirstChild("Head") or OtherChar:FindFirstChild("Torso") or OtherChar:FindFirstChild("UpperTorso") or OtherChar:FindFirstChild("HumanoidRootPart")
+                                    if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
+                                        table.insert(OthersEnemies, { OtherChar, TargetPart })
+                                        BasePart = TargetPart
+                                    end
+                                end
+                                return BasePart
+                            end
+                            local Part1 = ProcessEnemies(OthersEnemies, currentEnemies)
+                            local Part2 = ProcessRealPlayers(OthersEnemies)
+                            if #OthersEnemies > 0 then
+                                self:Attack(Part1 or Part2, OthersEnemies)
+                            end
+                        end
+                        function FastAttack:Attack(BasePart, OthersEnemies)
+                            local temp_RegisterAttack = Net and SafeWaitForChild(Net, "RE/RegisterAttack") or nil
+                            local temp_RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
+                            if not (BasePart and OthersEnemies and #OthersEnemies > 0 and temp_RegisterAttack and temp_RegisterHit) then
+                                CheckAndGetCoreComponents()
+                                return
+                            end
+                            temp_RegisterAttack:FireServer(Settings.ClickDelay or 0)
+                            temp_RegisterHit:FireServer(BasePart, OthersEnemies)
+                        end
+                        task.spawn(function()
+                            while true do
+                                task.wait(Settings.ClickDelay)
+                                if FastAttack.IsRunning then
+                                    CheckAndGetCoreComponents()
+                                    FastAttack:BladeHits()
+                                else
+                                    task.wait(0.1)
                                 end
                             end
-                            return BasePart
-                        end
-                        local function ProcessRealPlayers(OthersEnemies)
-                            if not FastAttack.attackPlayers then return nil end
-                            local BasePart = nil
-                            for _, OtherPlayer in Players:GetPlayers() do
-                                if OtherPlayer == Player then continue end
-                                local OtherChar = OtherPlayer.Character
-                                if not IsAlive(OtherChar) then continue end
-                                local TargetPart = OtherChar:FindFirstChild("Head") or OtherChar:FindFirstChild("Torso") or OtherChar:FindFirstChild("UpperTorso") or OtherChar:FindFirstChild("HumanoidRootPart")
-                                if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
-                                    table.insert(OthersEnemies, { OtherChar, TargetPart })
-                                    BasePart = TargetPart
-                                end
-                            end
-                            return BasePart
-                        end
-                        local Part1 = ProcessEnemies(OthersEnemies, Enemies)
-                        local Part2 = ProcessRealPlayers(OthersEnemies)
-                        if #OthersEnemies > 0 then
-                            self:Attack(Part1 or Part2, OthersEnemies)
-                        end
-                    end
-                    function FastAttack:Attack(BasePart, OthersEnemies)
-                        if not (BasePart and OthersEnemies and #OthersEnemies > 0 and RegisterAttack and RegisterHit) then
-                            return
-                        end
-                        RegisterAttack:FireServer(Settings.ClickDelay or 0)
-                        RegisterHit:FireServer(BasePart, OthersEnemies)
-                    end
-                    task.spawn(function()
-                        while task.wait(Settings.ClickDelay) do
-                            if FastAttack.IsRunning then
-                                FastAttack:BladeHits()
-                            end
-                        end
-                    end)
-                    _ENV.rz_FastAttack = FastAttack
-                    print("✅ 快速攻击功能已恢复启动")
-                    return FastAttack
-                end)()
+                        end)
+                        _ENV.rz_FastAttack = FastAttack
+                        print("✅ 快速攻击功能已恢复启动")
+                        return FastAttack
+                    end)()
+                end
             end
         end
     end
