@@ -137,7 +137,11 @@ if _G.FastAttack then
             if IsAlive(Player.Character) then
                 Equipped = Player.Character:FindFirstChildOfClass("Tool")
             end
+            local IsValidTool = nil
             if Equipped then
+                IsValidTool = Equipped.ToolTip ~= "Gun"
+            end
+            if IsValidTool then
                 self:AttackNearest()
             else
                 task.wait(0)
@@ -329,7 +333,11 @@ task.spawn(function()
                         if IsAlive(Player.Character) then
                             Equipped = Player.Character:FindFirstChildOfClass("Tool")
                         end
+                        local IsValidTool = nil
                         if Equipped then
+                            IsValidTool = Equipped.ToolTip ~= "Gun"
+                        end
+                        if IsValidTool then
                             self:AttackNearest()
                         end
                     end
