@@ -1,3 +1,21 @@
+task.wait(0.5)
+local Players = game:GetService("Players")
+local workspace = game:GetService("Workspace")
+local Player = Players.LocalPlayer
+local msg = Instance.new("Message", workspace)
+msg.Text = "达脚本欢迎你的使用"
+task.wait(4)
+msg.Text = "作者QQ:3491629303"
+task.wait(4)
+msg:Destroy()
+local msg = Instance.new("Message", workspace)
+msg.Text = "已检测到你("..Player.Name..")加入游戏"
+task.wait(3)
+msg:Destroy()
+local msg = Instance.new("Message", workspace)
+msg.Text = "达脚本正在加载(请稍等金主)"
+task.wait(4)
+msg:Destroy()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/XAORKG/XGHDVK/refs/heads/main/XYOP"))()
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
