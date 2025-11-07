@@ -51,6 +51,7 @@ if _G.FastAttack then
     end
 
     local Remotes, Modules, Net, RegisterAttack, RegisterHit, Enemies = nil, nil, nil, nil, nil, nil
+    -- 修改：持续循环检查，直到所有核心组件都找到才返回（避免组件缺失导致没伤害）
     local function CheckAndGetCoreComponents()
         while true do
             Remotes = SafeWaitForChild(ReplicatedStorage, "Remotes")
@@ -60,13 +61,15 @@ if _G.FastAttack then
             RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
             Enemies = SafeWaitForChild(workspace, "Enemies")
             
+            -- 所有组件都找到才跳出循环
             if Remotes and Modules and Net and RegisterAttack and RegisterHit and Enemies then
                 break
             end
-            task.wait(0.5)
+            warn("核心组件缺失，持续重试中...")
+            task.wait(1) -- 每秒重试一次，平衡性能和恢复速度
         end
     end
-    CheckAndGetCoreComponents()
+    CheckAndGetCoreComponents() -- 脚本启动时首次检查
 
     local Validator = Remotes and SafeWaitForChild(Remotes, "Validator") or nil
     local CommF = Remotes and SafeWaitForChild(Remotes, "CommF_") or nil
@@ -92,7 +95,7 @@ if _G.FastAttack then
         end
 
         local FastAttack = {
-            Distance = 500,
+            Distance = 50,
             attackMobs = true,
             attackPlayers = true,
             Equipped = nil,
@@ -149,10 +152,11 @@ if _G.FastAttack then
         end
 
         function FastAttack:Attack(BasePart, OthersEnemies)
+            -- 攻击前再次检查组件（双重保险）
+            CheckAndGetCoreComponents()
             local temp_RegisterAttack = Net and SafeWaitForChild(Net, "RE/RegisterAttack") or nil
             local temp_RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
             if not (BasePart and OthersEnemies and #OthersEnemies > 0 and temp_RegisterAttack and temp_RegisterHit) then
-                CheckAndGetCoreComponents()
                 return
             end
             temp_RegisterAttack:FireServer(Settings.ClickDelay or 0)
@@ -161,6 +165,8 @@ if _G.FastAttack then
 
         function FastAttack:AttackNearest()
             if not self.IsRunning then return end
+            -- 攻击前强制检查组件
+            CheckAndGetCoreComponents()
             local OthersEnemies = {}
             local currentEnemies = SafeWaitForChild(workspace, "Enemies")
             local Part1 = ProcessEnemies(OthersEnemies, currentEnemies)
@@ -174,6 +180,8 @@ if _G.FastAttack then
 
         function FastAttack:BladeHits()
             if not self.IsRunning then return end
+            -- 每次攻击前都检查组件（核心修改，确保组件不丢失）
+            CheckAndGetCoreComponents()
             local Equipped = Player.Character and IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
             if Equipped and Equipped.ToolTip ~= "Gun" then
                 self:AttackNearest()
@@ -186,7 +194,6 @@ if _G.FastAttack then
             while true do
                 task.wait(Settings.ClickDelay)
                 if Settings.AutoClick and FastAttack.IsRunning then
-                    CheckAndGetCoreComponents()
                     FastAttack:BladeHits()
                 else
                     task.wait(0.1)
@@ -288,7 +295,7 @@ UnitLabel.Parent = MainFrame
 RangeInput.FocusLost:Connect(function(enterPressed)
     if enterPressed and _ENV.rz_FastAttack then
         local inputNum = tonumber(RangeInput.Text)
-        local newRange = inputNum and math.floor(math.clamp(inputNum, 1, 1000)) or 10
+        local newRange = inputNum and math.floor(math.clamp(inputNum, 1, 2500)) or 10
         RangeInput.Text = tostring(newRange)
         _ENV.rz_FastAttack.Distance = newRange
     end
@@ -335,6 +342,7 @@ task.spawn(function()
                         end
                         function FastAttack:AttackNearest()
                             if not self.IsRunning then return end
+                            CheckAndGetCoreComponents() -- 重试逻辑中添加组件检查
                             local OthersEnemies = {}
                             local currentEnemies = SafeWaitForChild(workspace, "Enemies")
                             local function ProcessEnemies(OthersEnemies, Folder)
@@ -374,10 +382,10 @@ task.spawn(function()
                             end
                         end
                         function FastAttack:Attack(BasePart, OthersEnemies)
+                            CheckAndGetCoreComponents() -- 重试逻辑中添加组件检查
                             local temp_RegisterAttack = Net and SafeWaitForChild(Net, "RE/RegisterAttack") or nil
                             local temp_RegisterHit = Net and SafeWaitForChild(Net, "RE/RegisterHit") or nil
                             if not (BasePart and OthersEnemies and #OthersEnemies > 0 and temp_RegisterAttack and temp_RegisterHit) then
-                                CheckAndGetCoreComponents()
                                 return
                             end
                             temp_RegisterAttack:FireServer(Settings.ClickDelay or 0)
