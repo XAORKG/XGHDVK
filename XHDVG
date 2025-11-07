@@ -13,8 +13,8 @@ msg.Text = "已检测到你("..Player.Name..")加入游戏"
 task.wait(3)
 msg:Destroy()
 local msg = Instance.new("Message", workspace)
-msg.Text = "达脚本正在加载(请稍等金主)"
-task.wait(4)
+msg.Text = "正在获取数据加载中预计20秒左右……"
+task.wait(20)
 msg:Destroy()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/XAORKG/XGHDVK/refs/heads/main/XYOP"))()
 local Players = game:GetService("Players")
