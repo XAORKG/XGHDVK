@@ -10,7 +10,7 @@ msg1:Destroy()
 
 local msg2 = Instance.new("Message", workspace)
 msg2.Text = "有问题请联系作者作者QQ:3491629303"
-task.wait(6)
+task.wait(5)
 msg2:Destroy()
 
 local msg3 = Instance.new("Message", workspace)
@@ -20,7 +20,7 @@ msg3:Destroy()
 
 local msg4 = Instance.new("Message", workspace)
 msg4.Text = "正在加载数据中大概10秒左右……"
-task.wait(15)
+task.wait(10)
 msg4:Destroy()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/XAORKG/XGHDVK/refs/heads/main/XYOP"))()
 local Players = game:GetService("Players")
@@ -112,17 +112,31 @@ if _G.FastAttack then
             return humanoid.Health and humanoid.Health > 0
         end
 
+        -- 核心：随机获取目标的有效物理部件（替换固定4个部位）
+        local function GetRandomValidPart(target)
+            local allParts = target:GetDescendants() -- 获取所有子部件（含嵌套）
+            local validParts = {}
+            -- 筛选：仅保留可攻击的物理部件（BasePart+开启碰撞）
+            for _, part in ipairs(allParts) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    table.insert(validParts, part)
+                end
+            end
+            -- 随机选一个，无有效部件则用HumanoidRootPart兜底
+            if #validParts > 0 then
+                return validParts[math.random(1, #validParts)]
+            else
+                return target:FindFirstChild("HumanoidRootPart")
+            end
+        end
+
+        -- 修改：NPC用随机部位
         local function ProcessEnemies(OthersEnemies, Folder)
             if not Folder or not FastAttack.attackMobs then return nil end
             local BasePart = nil
             for _, Enemy in Folder:GetChildren() do
                 if Enemy == Player.Character or not IsAlive(Enemy) then continue end
-                local targetParts = {"Head", "Torso", "UpperTorso", "HumanoidRootPart"}
-                local foundPart = nil
-                for _, partName in ipairs(targetParts) do
-                    foundPart = Enemy:FindFirstChild(partName)
-                    if foundPart then break end
-                end
+                local foundPart = GetRandomValidPart(Enemy) -- 调用随机部位函数
                 if foundPart and Player:DistanceFromCharacter(foundPart.Position) < FastAttack.Distance then
                     table.insert(OthersEnemies, {Enemy, foundPart})
                     BasePart = foundPart
@@ -131,6 +145,7 @@ if _G.FastAttack then
             return BasePart
         end
 
+        -- 修改：玩家用随机部位
         local function ProcessRealPlayers(OthersEnemies)
             if not FastAttack.attackPlayers then return nil end
             local BasePart = nil
@@ -138,12 +153,7 @@ if _G.FastAttack then
                 if OtherPlayer == Player then continue end
                 local OtherChar = OtherPlayer.Character
                 if not IsAlive(OtherChar) then continue end
-                local targetParts = {"Head", "Torso", "UpperTorso", "HumanoidRootPart"}
-                local foundPart = nil
-                for _, partName in ipairs(targetParts) do
-                    foundPart = OtherChar:FindFirstChild(partName)
-                    if foundPart then break end
-                end
+                local foundPart = GetRandomValidPart(OtherChar) -- 调用随机部位函数
                 if foundPart and Player:DistanceFromCharacter(foundPart.Position) < FastAttack.Distance then
                     table.insert(OthersEnemies, {OtherChar, foundPart})
                     BasePart = foundPart
@@ -209,7 +219,7 @@ if _G.FastAttack then
     end)()
 end
 
--- UI部分保持不变
+-- UI部分保持不变（仅修改标题提示）
 local FastAttackUI = Instance.new("ScreenGui")
 FastAttackUI.Name = "FastAttackUI"
 FastAttackUI.Parent = PlayerGui
@@ -233,7 +243,7 @@ local TitleBar = Instance.new("TextLabel")
 TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 18)
 TitleBar.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-TitleBar.Text = "模型佛范围作者:3491629303"
+TitleBar.Text = "大佛专用杀戮光环作者:3491629303" -- 标题提示修改
 TitleBar.TextColor3 = Color3.fromRGB(0, 0, 0)
 TitleBar.TextScaled = true
 TitleBar.TextSize = 10
@@ -315,7 +325,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 重试逻辑同步修改：实时获取组件
+-- 重试逻辑同步修改：添加随机部位函数（关键）
 task.spawn(function()
     while true do
         task.wait(1)
@@ -344,6 +354,22 @@ task.spawn(function()
                             return humanoid.Health and humanoid.Health > 0
                         end
 
+                        -- 重试逻辑也添加随机部位函数
+                        local function GetRandomValidPart(target)
+                            local allParts = target:GetDescendants()
+                            local validParts = {}
+                            for _, part in ipairs(allParts) do
+                                if part:IsA("BasePart") and part.CanCollide then
+                                    table.insert(validParts, part)
+                                end
+                            end
+                            if #validParts > 0 then
+                                return validParts[math.random(1, #validParts)]
+                            else
+                                return target:FindFirstChild("HumanoidRootPart")
+                            end
+                        end
+
                         function FastAttack:BladeHits()
                             local Equipped = Player.Character and IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
                             if Equipped and Equipped.ToolTip ~= "Gun" then
@@ -360,12 +386,7 @@ task.spawn(function()
                                 local BasePart = nil
                                 for _, Enemy in Folder:GetChildren() do
                                     if Enemy == Player.Character or not IsAlive(Enemy) then continue end
-                                    local targetParts = {"Head", "Torso", "UpperTorso", "HumanoidRootPart"}
-                                    local foundPart = nil
-                                    for _, partName in ipairs(targetParts) do
-                                        foundPart = Enemy:FindFirstChild(partName)
-                                        if foundPart then break end
-                                    end
+                                    local foundPart = GetRandomValidPart(Enemy) -- 随机部位
                                     if foundPart and Player:DistanceFromCharacter(foundPart.Position) < FastAttack.Distance then
                                         table.insert(OthersEnemies, {Enemy, foundPart})
                                         BasePart = foundPart
@@ -381,59 +402,54 @@ task.spawn(function()
                                     if OtherPlayer == Player then continue end
                                     local OtherChar = OtherPlayer.Character
                                     if not IsAlive(OtherChar) then continue end
-                                    local targetParts = {"Head", "Torso", "UpperTorso", "HumanoidRootPart"}
-                                    local foundPart = nil
-                                    for _, partName in ipairs(targetParts) do
-                                        foundPart = OtherChar:FindFirstChild(partName)
-                                        if foundPart then break end
-                                    end
+                                    local foundPart = GetRandomValidPart(OtherChar) -- 随机部位
                                     if foundPart and Player:DistanceFromCharacter(foundPart.Position) < FastAttack.Distance then
-                                        table.insert(OthersEnemies, {OtherChar, foundPart})
-                                        BasePart = foundPart
-                                    end
-                                end
-                                return BasePart
-                            end
-
-                            local Part1 = ProcessEnemies(OthersEnemies, Enemies)
-                            local Part2 = ProcessRealPlayers(OthersEnemies)
-                            if #OthersEnemies > 0 then
-                                self:Attack(Part1 or Part2, OthersEnemies)
-                            end
-                        end
-
-                        function FastAttack:Attack(BasePart, OthersEnemies)
-                            local _, Net, temp_RegisterAttack, temp_RegisterHit, _ = CheckAndGetCoreComponents()
-                            if not (BasePart and OthersEnemies and #OthersEnemies > 0 and temp_RegisterAttack and temp_RegisterHit) then
-                                self.consecutiveFailures = self.consecutiveFailures + 1
-                                if self.consecutiveFailures >= self.maxConsecutiveFailures then
-                                    self.consecutiveFailures = 0
-                                    self.Equipped = Player.Character and IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
-                                end
-                                task.delay(0.5, function() self:AttackNearest() end)
-                                return
-                            end
-                            self.consecutiveFailures = 0
-                            temp_RegisterAttack:FireServer(Settings.ClickDelay or 0)
-                            temp_RegisterHit:FireServer(BasePart, OthersEnemies)
-                        end
-
-                        task.spawn(function()
-                            while true do
-                                task.wait(Settings.ClickDelay)
-                                if Settings.AutoClick and FastAttack.IsRunning then
-                                    FastAttack:BladeHits()
-                                else
-                                    task.wait(0.1)
-                                end
-                            end
-                        end)
-
-                        _ENV.rz_FastAttack = FastAttack
-                        return FastAttack
-                    end)()
-                end
-            end
-        end
-    end
+table.insert(OthersEnemies, {OtherChar, foundPart})
+BasePart = foundPart
+end
+end
+return BasePart
+end
+ 
+local Part1 = ProcessEnemies(OthersEnemies, Enemies)
+local Part2 = ProcessRealPlayers(OthersEnemies)
+if #OthersEnemies > 0 then
+self:Attack(Part1 or Part2, OthersEnemies)
+end
+end
+ 
+function FastAttack:Attack(BasePart, OthersEnemies)
+local _, Net, temp_RegisterAttack, temp_RegisterHit, _ = CheckAndGetCoreComponents()
+if not (BasePart and OthersEnemies and #OthersEnemies > 0 and temp_RegisterAttack and temp_RegisterHit) then
+self.consecutiveFailures = self.consecutiveFailures + 1
+if self.consecutiveFailures >= self.maxConsecutiveFailures then
+self.consecutiveFailures = 0
+self.Equipped = Player.Character and IsAlive(Player.Character) and Player.Character:FindFirstChildOfClass("Tool")
+end
+task.delay(0.5, function() self:AttackNearest() end)
+return
+end
+self.consecutiveFailures = 0
+temp_RegisterAttack:FireServer(Settings.ClickDelay or 0)
+temp_RegisterHit:FireServer(BasePart, OthersEnemies)
+end
+ 
+task.spawn(function()
+while true do
+task.wait(Settings.ClickDelay)
+if Settings.AutoClick and FastAttack.IsRunning then
+FastAttack:BladeHits()
+else
+task.wait(0.1)
+end
+end
+end)
+ 
+_ENV.rz_FastAttack = FastAttack
+return FastAttack
+end)()
+end
+end
+end
+end
 end)
