@@ -85,7 +85,7 @@ if _G.FastAttack then
 
     local Settings = {
         AutoClick = true,
-        ClickDelay = 1
+        ClickDelay = 0.3
     }
 
     local Module = {}
