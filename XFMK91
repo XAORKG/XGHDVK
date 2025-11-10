@@ -849,7 +849,7 @@ attackSection:Textbox("攻击范围", "AttackRange", "500", function(text)
 	end
 end)
 
-attackSection:Textbox("攻速延迟(秒)", "ClickDelay", "0.3", function(text)
+attackSection:Textbox("攻速延迟(猎赏=1娱乐=0.3)", "ClickDelay", "0.3", function(text)
 	local num = tonumber(text) or 0.3
 	num = math.round(math.clamp(num, 0.05, 2) * 100) / 100
 	Settings.ClickDelay = num
