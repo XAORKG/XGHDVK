@@ -1,3 +1,27 @@
+task.wait(0.5)
+local Players = game:GetService("Players")
+local workspace = game:GetService("Workspace")
+local Player = Players.LocalPlayer
+
+local msg1 = Instance.new("Message", workspace)
+msg1.Text = "欢迎你的使用"
+task.wait(4)
+msg1:Destroy()
+
+local msg2 = Instance.new("Message", workspace)
+msg2.Text = "有问题请联系作者作者QQ:3491629303"
+task.wait(5)
+msg2:Destroy()
+
+local msg3 = Instance.new("Message", workspace)
+msg3.Text = "已检测到你("..Player.Name..")加入了游戏"
+task.wait(3)
+msg3:Destroy()
+
+local msg4 = Instance.new("Message", workspace)
+msg4.Text = "正在加载数据中大概10秒左右……"
+task.wait(10)
+msg4:Destroy()
 repeat task.wait() until game:IsLoaded()
 local library = {}
 local ToggleUI = false
