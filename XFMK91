@@ -652,7 +652,7 @@ function library.new(library, name,theme)
 	return window
 end
 
-local window = library:new("神光脚本重制版")
+local window = library:new("比翼大佛")
 local creds = window:Tab("信息",'6035145364')
 local bin = creds:section("信息",true)
 bin:Label("你的用户名："..game.Players.LocalPlayer.Name)
