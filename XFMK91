@@ -876,7 +876,7 @@ end)
  
 attackSection:Textbox("攻速延迟(秒)", "ClickDelay", "0.3", function(text)
 local num = tonumber(text) or 0.3
-num = math.round(math.clamp(num, 0.01, 1000) * 100) / 100
+num = math.round(math.clamp(num, 0.02, 3) * 100) / 100
 Settings.ClickDelay = num
 end)
  
