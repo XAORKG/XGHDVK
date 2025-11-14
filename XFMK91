@@ -1,3 +1,4 @@
+--恭喜你破解了我的脚本 但是，可惜我已经把源码下架了 目前就只有一个标题 
 task.wait(0.5)
 local Players = game:GetService("Players")
 local workspace = game:GetService("Workspace")
